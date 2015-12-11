@@ -13,16 +13,15 @@ function handleRequest(req, res) {
   var pathname = urlObj.pathname;
   var query = urlObj.query;
   var queryObj = querystring.parse(query);
-  var fName = queryObj.fname;
-  var lName = queryObj.lname;
-  var fpl = queryObj.fPL;
+  var firstName = queryObj.fname;
+  var lastName = queryObj.lname;
+  var language = queryObj.fpl;
+
   console.log(queryObj);
-  console.log(fName);
-  console.log(lName);
-  console.log(fpl);
 
 
-  if (pathname === "/students" || pathname == "/") {
+
+  if (pathname === "/students" || pathname === "/") {
 
     student.find({}, function(err, data) {
       res.statusCode = 200;
@@ -30,14 +29,15 @@ function handleRequest(req, res) {
       res.write("<h1>It's working</h1>");
       res.write("<p><strong>" + JSON.stringify(data) + "</p></strong>");
       res.end();
-
     });
-  } else if (pathname == "/students/create") {
+
+  } else if (pathname === "/students/create") {
 
     student.insert(queryObj, function(err, doc) {
       if (err) {
         throw err;
       }
+
       res.statusCode = 200;
       // create new student and return a response to make sure that it was inserted into the db without errors
       console.log(doc);
@@ -46,9 +46,8 @@ function handleRequest(req, res) {
       res.end();
     });
 
-  } else if (pathname == "/students/delete") {
+  } else if (pathname === "/students/delete") {
 
-    //find specific student and then remove them from the database
     student.findOne(queryObj, function(err, doc) {
       console.log(doc);
       if (err || doc === null) {
@@ -66,37 +65,46 @@ function handleRequest(req, res) {
       }
     });
 
-  } else if (pathname == "/students/update") {
+  } else if (pathname === "/students/update") {
 
-    student.findOne({ fname : queryObj.fName, lname : queryObj.lName }, function(err, doc) {
+    var nameObj = {};
+    nameObj.fname = firstName;
+    nameObj.lname = lastName;
+    var langObj = {};
+    langObj.fpl = language;
+
+    student.findOne( nameObj , function(err, doc) {
       if (err || doc === null) {
         res.write("<h1>" + req.url + "</h1>");
         res.write("<p><strong>" + JSON.stringify(doc) + "Doesn't Exist! </p></strong>");
         res.end();
       } else {
-        student.update( { fname : queryObj.fName, lname : queryObj.lName }, {fPL : queryObj.fpl}, function(){
-        res.statusCode = 200;
-        // create new student and return a response to make sure that it was inserted into the db without errors
-        console.log(doc);
-        res.write("<h1>" + req.url + "</h1>");
-        res.write("<p><strong>" + JSON.stringify(doc) + "</p></strong>");
-        res.end();
+        res.write("<h1>" + JSON.stringify(doc) + "</h1>");
+        student.update(doc, {
+          $set : langObj
+        }, function(err , doc2) {
+          res.statusCode = 200;
+          console.log(doc2);
+          res.write("<h1>" + req.url + "</h1>");
+          res.write("<p><strong>" + JSON.stringify(doc2) + "</p></strong>");
+          res.end();
         });
       }
     });
 
   } else {
-
-  res.statusCode = 404;
-  res.write('<h1>This is not a page</h1>');
-  urlObj = url.parse(req.url);
-  //  console.log(urlObj);
-  res.write("<p><strong>" + JSON.stringify(urlObj) + "</p></strong>");
-  res.end();
-}
+    // route for returning a page when the url doesn't have a route
+    res.statusCode = 404;
+    res.write('<h1>This is not a page</h1>');
+    urlObj = url.parse(req.url);
+    //  console.log(urlObj);
+    res.write("<p><strong>" + JSON.stringify(urlObj) + "</p></strong>");
+    res.end();
+  }
 }
 // create a server using http
 var server = http.createServer(handleRequest);
+
 // start the server on port 8000
 server.listen(8000, function() {
   console.log('starting server on 8000');
